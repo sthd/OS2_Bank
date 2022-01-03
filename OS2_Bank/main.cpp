@@ -8,8 +8,21 @@
 
 #include <iostream>
 
+
+// declare threads
+
+
+
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "Hello, World!\n";
+    
+    // create threads + run them
+    
+    
+    
+    
+    //join threads
+    
+    //free memory + last prints
+    
     return 0;
 }
