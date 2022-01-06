@@ -10,6 +10,7 @@
 		53719FA527831B010050D982 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53719FA427831B010050D982 /* main.cpp */; };
 		53719FAD27831B240050D982 /* Account.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 53719FAB27831B240050D982 /* Account.cpp */; };
 		538162C82785B481002EF037 /* ATM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 538162C62785B481002EF037 /* ATM.cpp */; };
+		538162CB2786D8B1002EF037 /* Bank.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 538162C92786D8B1002EF037 /* Bank.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,6 +32,8 @@
 		53719FAC27831B240050D982 /* Account.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Account.hpp; sourceTree = "<group>"; };
 		538162C62785B481002EF037 /* ATM.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ATM.cpp; sourceTree = "<group>"; };
 		538162C72785B481002EF037 /* ATM.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ATM.hpp; sourceTree = "<group>"; };
+		538162C92786D8B1002EF037 /* Bank.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Bank.cpp; sourceTree = "<group>"; };
+		538162CA2786D8B1002EF037 /* Bank.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Bank.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,10 +67,12 @@
 			isa = PBXGroup;
 			children = (
 				53719FA427831B010050D982 /* main.cpp */,
+				538162C92786D8B1002EF037 /* Bank.cpp */,
+				538162CA2786D8B1002EF037 /* Bank.hpp */,
 				53719FAB27831B240050D982 /* Account.cpp */,
+				53719FAC27831B240050D982 /* Account.hpp */,
 				538162C62785B481002EF037 /* ATM.cpp */,
 				538162C72785B481002EF037 /* ATM.hpp */,
-				53719FAC27831B240050D982 /* Account.hpp */,
 			);
 			path = OS2_Bank;
 			sourceTree = "<group>";
@@ -130,6 +135,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				538162C82785B481002EF037 /* ATM.cpp in Sources */,
+				538162CB2786D8B1002EF037 /* Bank.cpp in Sources */,
 				53719FA527831B010050D982 /* main.cpp in Sources */,
 				53719FAD27831B240050D982 /* Account.cpp in Sources */,
 			);
