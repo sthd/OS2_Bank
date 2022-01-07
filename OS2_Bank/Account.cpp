@@ -11,14 +11,13 @@
 #include <unistd.h>
 
 
-pthread_mutex_t mutex_log_file{};
 
-void lock_log_file() {pthread_mutex_lock(&mutex_log_file);}
-
-void unlock_log_file() {pthread_mutex_unlock(&mutex_log_file);}
 
 //vector<Account> accountVec;
 
+
+
+/*
 class Account{
     int id_;
     int password_;
@@ -161,7 +160,7 @@ class Account{
     
 
 };
-
+*/
 
 
 
