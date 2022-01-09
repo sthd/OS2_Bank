@@ -11,14 +11,31 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <iostream>
+#include <fstream>
+
+using namespace std;
 
 
-pthread_mutex_t mutex_log_file{};
+class LogFile{
+        pthread_mutex_t mutex_log_file{};
 
-void lock_log_file() {pthread_mutex_lock(&mutex_log_file);}
+    
+    public:
+        ofstream out;
+    
+        LogFile();
+        
+        ~LogFile();
+        
+        void lock_log_file();
+        
+        void unlock_log_file();
+    
+};
 
-void unlock_log_file() {pthread_mutex_unlock(&mutex_log_file);}
+// @@@@@@@@@@@@@ logFile << "Error <ATM ID>: Your transaction failed – account with the same id exists" << endl;
 
-
+// @@@@@@@@@@@@@ AT THE END  MyFile.close();
 
 #endif /* log_file_hpp */

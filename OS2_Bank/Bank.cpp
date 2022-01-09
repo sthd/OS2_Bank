@@ -12,6 +12,9 @@
 
 #include <vector>
 #include <pthread.h>
+
+extern class LogFile logy;
+
 using std::vector;
 
 
@@ -46,19 +49,19 @@ class Bank{
         lock_writers();
         sleep(1);
         if (findAccount(accountId) == NULL){
-            lock_log_file();
+            logy.lock_log_file();
             //
             // <ATM ID>: Account <id> new balance is <bal> after <amount> $ was deposited
-            Account tmp = Account(accountId, password, amount);
+            Account tmp = Account(ATM, accountId, password, amount);
             accountVector.push_back(tmp);
-            unlock_log_file();
+            logy.unlock_log_file();
         }
         else{
-            lock_log_file();
+            logy.lock_log_file();
             //
             // Error <ATM ID>: Your transaction failed – account with the same id exists
-        
-            unlock_log_file();
+            logy.out << "Error " << ATM << " : Your transaction failed – account with the same id exists" << endl;
+            logy.unlock_log_file();
         }
         unlock_writers();
     }
@@ -69,25 +72,25 @@ class Bank{
         for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
             if (it->getID() == accountId){
                 if (it->getPassword() == password){
-                    lock_log_file();
+                    logy.lock_log_file();
                     accountVector.erase(it);
-                    unlock_log_file();
+                    logy.unlock_log_file();
                     unlock_writers();
                     return;
                 }
                 else{
-                    lock_log_file();
+                    logy.lock_log_file();
                     //
                     // Error <ATM ID>: Your transaction failed – password for account id <id> is incorrect
-                    unlock_log_file();
+                    logy.unlock_log_file();
                     unlock_writers();
                     return;
                 }
             }
-            lock_log_file();
+            logy.lock_log_file();
             //
             // Error <ATM ID>: Your transaction failed – account id <id> does not exist
-            unlock_log_file();
+            logy.unlock_log_file();
         unlock_writers();
         }
     }
@@ -96,13 +99,13 @@ class Bank{
         lock_readers();
         Account* tmp= findAccount(accountId);
         if (tmp==NULL){
-            lock_log_file();
+            logy.lock_log_file();
             //
             // Error <ATM ID>: Your transaction failed – account id <id> does not exist
-            unlock_log_file();
+            logy.unlock_log_file();
         }
         else{
-            tmp->cashDeposit(ATM, password, amount);
+            tmp->cashDeposit(ATM, password, amount, false);
         }
         unlock_readers();
     }
@@ -111,13 +114,13 @@ class Bank{
         lock_readers();
         Account* tmp= findAccount(accountId);
         if (tmp==NULL){
-            lock_log_file();
+            logy.lock_log_file();
             //
             // Error <ATM ID>: Your transaction failed – account id <id> does not exist
-            unlock_log_file();
+            logy.unlock_log_file();
         }
         else{
-            tmp->cashWithdrawl(ATM, password, amount);
+            tmp->cashWithdrawl(ATM, password, amount, false);
         }
         unlock_readers();
     }
@@ -126,24 +129,24 @@ class Bank{
         lock_readers();
         Account* sourceAccount = findAccount(sourceAcountId);
         if (sourceAccount == NULL){
-            lock_log_file();
+            logy.lock_log_file();
             //
             //  no source
-            unlock_log_file();
+            logy.unlock_log_file();
             unlock_readers();
             return;
         }
         Account* targetAccount = findAccount(targetAccountId);
         if (targetAccount == NULL){
-            lock_log_file();
+            logy.lock_log_file();
             //
             //  no target
-            unlock_log_file();
+            logy.unlock_log_file();
             unlock_readers();
             return;
         }
-        if (sourceAccount->cashWithdrawl(ATM, password, amount) == true){
-            targetAccount->cashWithdrawl(ATM, password, amount);
+        if (sourceAccount->cashWithdrawl(ATM, password, amount, false) == true){
+            targetAccount->cashDeposit(ATM, password, amount, false);
         }
             
         // Attention: prints should be different as successful withdrawl/deposit print

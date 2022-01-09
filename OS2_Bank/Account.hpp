@@ -16,6 +16,7 @@
 #include "log_file.hpp"
 #include "ATM.hpp"
 
+extern class LogFile logy;
 
 class Account{
     int id_;
@@ -29,135 +30,33 @@ class Account{
 
     public:
     //static int jobCount;
-    Account(int id, int password, int balance) : id_(id), password_(password), balance_(balance), num_readers(0){
-        pthread_mutex_init(&mutex_readers, nullptr);
-        pthread_mutex_init(&mutex_writers, nullptr);
+    Account(int ATM, int id, int password, int balance);
+    
+    ~Account();
+    
+    void cashDeposit(int ATM, int password, int amount, bool transfer);
+    
+    bool cashWithdrawl(int ATM, int password, int amount, bool transfer);
+    
+    void checkBalance(int ATM, int password);
+    
+    int takeCommision(double rate);
+    
+    
+    void printAccount();
         
-        lock_log_file();
-        //write into logfile
-        // <ATM ID>: New account id is <id> with password <pass> and initial balance <bal>
-        unlock_log_file();
-    }
+    int getID();
+    int getPassword();
+    int getBalance();
     
-    ~Account(){
-        pthread_mutex_destroy(&mutex_readers);
-        pthread_mutex_destroy(&mutex_writers);
-    }
+    void lock_readers();
     
-    void cashDeposit(int ATM, int password, int amount){
-        lock_writers();
-        sleep(1);
-        if (password==password_){
-            balance_+=amount;
-            lock_log_file();
-            //write into logfile
-            // <ATM ID>: Account <id> new balance is <bal> after <amount> $ was deposited
-            unlock_log_file();
-        }
-        else{
-            lock_log_file();
-            //write into logfile
-            // Error <ATM ID>: Your transaction failed – password for account id <id> is incorrect
-            unlock_log_file();
-        }
-        unlock_writers();
-    }
+    void unlock_readers();
     
-    bool cashWithdrawl(int ATM, int password, int amount){
-        lock_writers();
-        sleep(1);
-        bool success = false;
-        if (password==password_){
-            if (balance_ >= amount){
-                balance_ -= amount;
-                lock_log_file();
-                //write into logfile
-                // <ATM ID>: Account <id> new balance is <bal> after <amount> $ was withdrew
-                unlock_log_file();
-                success=true;
-            }
-            else{
-                lock_log_file();
-                //write into logfile
-                // <ATM ID>: Your transaction failed - account id <id> is lower than <amount>
-                unlock_log_file();
-            }
-        }
-        else{
-            lock_log_file();
-            //write into logfile
-            // Error <ATM ID>: Your transaction failed – password for account id <id> is incorrect
-            unlock_log_file();
-        }
-        unlock_writers();
-        return success;
-    }
+    void lock_writers();
     
-    void checkBalance(int ATM, int password){
-       lock_readers();
-       sleep(1);
-       if (password==password_){
-           lock_log_file();
-           //write into logfile
-           // <ATM ID>: Account <id> balance is <bal>
-           unlock_log_file();
-       }
-       else{
-           lock_log_file();
-           //write into logfile
-           // Error <ATM ID>: Your transaction failed – password for account id <id> is incorrect
-           unlock_log_file();
-       }
-       unlock_readers();
-    }
+    void unlock_writers();
     
-    int takeCommision(double rate){
-        lock_writers();
-        sleep(1);
-        int amount = int(balance_ * rate);
-        balance_-=amount;
-        lock_log_file();
-        // write into logfile
-        // Error <ATM ID>: Your transaction failed – password for account id <id> is incorrect
-        unlock_log_file();
-        unlock_writers();
-        return amount;
-    }
-    
-    
-    
-    
-    
-    void printAccount(){
-    }
-        
-    int getID(){return id_;}
-    int getPassword(){return password_;}
-    int getBalance(){return balance_;}
-    
-    void lock_readers() {
-        pthread_mutex_lock(&mutex_readers);
-        num_readers++;
-        if (num_readers == 1){
-            pthread_mutex_lock(&mutex_writers);
-        }
-        pthread_mutex_unlock(&mutex_readers);
-    }
-    
-    
-    void unlock_readers(){
-        pthread_mutex_lock(&mutex_readers);
-        num_readers--;
-        if (num_readers == 0)
-            pthread_mutex_unlock(&mutex_writers);
-        pthread_mutex_unlock(&mutex_readers);
-    }
-    
-    void lock_writers() {pthread_mutex_lock(&mutex_writers);}
-    
-    void unlock_writers() {pthread_mutex_unlock(&mutex_writers);}
-    
-
 };
 
 
