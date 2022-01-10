@@ -29,6 +29,9 @@ class Account{
     
 
     public:
+      //make private later
+    
+    
     //static int jobCount;
     Account(int ATM, int id, int password, int balance);
     
@@ -46,9 +49,9 @@ class Account{
     
     void printAccount();
         
-    int getID();
-    int getPassword();
-    int getBalance();
+    int getID() const;
+    int getPassword() const;
+    int getBalance() const;
     void setBalance(int transferAmount);
     
     void lock_readers();

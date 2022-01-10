@@ -101,13 +101,10 @@ int Account::takeCommision(double rate, int percentage){
     return amount;
 }
 
-
-void Account::printAccount(){
-}
     
-int Account::getID(){return id_;}
-int Account::getPassword(){return password_;}
-int Account::getBalance(){return balance_;}
+int Account::getID() const {return id_;}
+int Account::getPassword() const {return password_;}
+int Account::getBalance() const {return balance_;}
 void Account::setBalance(int transferAmount){
     balance_+=transferAmount;
 }

@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <pthread.h>
+#include<algorithm>
 
 extern class LogFile logy;
 
@@ -27,10 +28,12 @@ class Bank{
     pthread_t print;
     pthread_t commision;
     pthread_t* ATM_list;
-    vector<Account> accountVector;
+
     
     
     public:
+        
+    vector<Account> accountVector;
     // explicit
     Bank(int numATM) : numATM_(numATM), balance_(0), numReaders_(0){
         pthread_mutex_init(&mutex_readers, nullptr);
@@ -107,6 +110,20 @@ class Bank{
         unlock_readers();
     }
     
+    void cashBalance(int ATM, int accountId, int password){
+        lock_readers();
+        Account* tmp= findAccount(accountId);
+        if (tmp==NULL){
+            logy.lock_log_file();
+            logy.out << "Error " << ATM << ": Your transaction failed – account id " << accountId << " does not exist" << endl;
+            logy.unlock_log_file();
+        }
+        else{
+            tmp->checkBalance(ATM, password);
+        }
+        unlock_readers();
+    }
+    
     void cashWithdrawl(int ATM, int accountId, int password, int amount){
         lock_readers();
         Account* tmp= findAccount(accountId);
@@ -118,6 +135,33 @@ class Bank{
         else{
             tmp->cashWithdrawl(ATM, password, amount);
         }
+        unlock_readers();
+    }
+    
+    void takeComission(){
+        lock_readers();
+        int rates[3]={2, 3, 4};
+        int percentage = rates[int(rand() % 3)] ;
+        double rate = percentage / 100;
+        cout << rate << endl;
+        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+           balance_+= it->takeCommision(rate, percentage);
+        }
+        unlock_readers();
+    }
+    
+    void status(){
+        lock_readers();
+        sort(accountVector.begin(),accountVector.end(), [](const Account& lhs, const Account& rhs) {
+            return lhs.getID() < rhs.getID();
+        });
+        printf("\033[2J");
+        printf("\033[1;1H");
+        cout << "Current Bank Status" << endl;
+        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+            cout << "Account " << it->getID() << ": Balance - " << it->getBalance() << " $ , Account Password - " << it->getPassword() << endl;
+        }
+        cout << "The Bank has " << balance_ << endl;
         unlock_readers();
     }
     
@@ -232,7 +276,6 @@ class Bank{
         unlock_readers();
         return;
     }
-    
 
     void lock_readers() {
         pthread_mutex_lock(&mutex_readers);
@@ -266,112 +309,3 @@ class Bank{
     }
     
 };
-
-
-
-
-
-
-/*
- void moneyTransfer(int ATM, int sourceAccountId, int password, int targetAccountId, int amount){
-     lock_readers();
-     int minId;
-     int maxId;
-     bool sourceIsMin=false;
-     if (sourceAccountId < targetAccountId){
-         minId = sourceAccountId;
-         maxId = targetAccountId;
-         sourceIsMin = true;
-         
-     }
-     else {
-         minId = targetAccountId;
-         maxId = sourceAccountId;
-     }
-     Account* minAccount = findAccount(minId);
-     if (minAccount == NULL) {
-         if (minId==sourceAccountId){
-             logy.lock_log_file();
-             logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
-             logy.unlock_log_file();
-             unlock_readers();
-             return;
-         }
-         //minId doesn't exist & minId = tagret
-         Account* maxAccount = findAccount(maxId);
-         if (maxAccount == NULL){
-             logy.lock_log_file();
-             logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
-             logy.unlock_log_file();
-             unlock_readers();
-             return;
-         }
-         maxAccount->lock_writers();
-         if (maxAccount->getPassword() != password){
-             logy.lock_log_file();
-             logy.out << "Error " << endl; //password
-             logy.unlock_log_file();
-             maxAccount->unlock_writers();
-             unlock_readers();
-             return;
-         }
-         if (maxAccount->getBalance() < amount){
-             logy.lock_log_file();
-             logy.out << "Error " << endl; // no money balance
-             logy.unlock_log_file();
-             maxAccount->unlock_writers();
-             unlock_readers();
-             return;
-         }
-         logy.lock_log_file();
-         logy.out << "Error " << ATM  << endl; // no target account
-         logy.unlock_log_file();
-         maxAccount->unlock_writers();
-         unlock_readers();
-         return;
-     }
-     
-     minAccount->lock_writers(); // minAccount isn't NULL
-     Account* maxAccount = findAccount(maxId);
-     if (maxAccount == NULL){
-         if (maxId == sourceAccountId){
-             logy.lock_log_file();
-             logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
-             logy.unlock_log_file();
-             minAccount->unlock_writers();
-             unlock_readers();
-             return;
-         }
-         // source < tagret
-         if (minAccount->getPassword() != password){
-             logy.lock_log_file();
-             logy.out << "Error " << endl; //password
-             logy.unlock_log_file();
-             minAccount->unlock_writers();
-             unlock_readers();
-             return;
-         }
-         
-         if (minAccount->getBalance() < amount){
-             logy.lock_log_file();
-             logy.out << "Error " << endl; // no money balance
-             logy.unlock_log_file();
-             minAccount->unlock_writers();
-             unlock_readers();
-             return;
-         }
-         logy.lock_log_file();
-         logy.out << "Error " << ATM  << endl; // no target account
-         logy.unlock_log_file();
-         minAccount->unlock_writers();
-         unlock_readers();
-         return;
-     }
-     
-     if (sourceIsMin){
-         
-         minAccount->setBalance(-amount);
-     }
-     
- }
- */
