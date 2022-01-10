@@ -49,22 +49,21 @@ class Bank{
         lock_writers();
         sleep(1);
         if (findAccount(accountId) == NULL){
-            logy.lock_log_file();
+            // logy.lock_log_file();
             //
             // <ATM ID>: Account <id> new balance is <bal> after <amount> $ was deposited
             Account tmp = Account(ATM, accountId, password, amount);
             accountVector.push_back(tmp);
-            logy.unlock_log_file();
+            //logy.unlock_log_file();
         }
         else{
             logy.lock_log_file();
-            //
-            // Error <ATM ID>: Your transaction failed – account with the same id exists
-            logy.out << "Error " << ATM << " : Your transaction failed – account with the same id exists" << endl;
+            logy.out << "Error " << ATM << ": Your transaction failed – account with the same id exists" << endl;
             logy.unlock_log_file();
         }
         unlock_writers();
     }
+    
     // ###################### when do we minimise ?????
     void closeAccount(int ATM, int accountId, int password){
         lock_writers();
@@ -73,6 +72,7 @@ class Bank{
             if (it->getID() == accountId){
                 if (it->getPassword() == password){
                     logy.lock_log_file();
+                    logy.out << ATM << ": Account " << accountId << " is now closed. Balance was " << it->getBalance() << endl;
                     accountVector.erase(it);
                     logy.unlock_log_file();
                     unlock_writers();
@@ -80,19 +80,17 @@ class Bank{
                 }
                 else{
                     logy.lock_log_file();
-                    //
-                    // Error <ATM ID>: Your transaction failed – password for account id <id> is incorrect
+                    logy.out << "Error " << ATM << ": Your transaction failed – password for account id " << accountId << " is incorrect" << endl;
                     logy.unlock_log_file();
                     unlock_writers();
                     return;
                 }
             }
-            logy.lock_log_file();
-            //
-            // Error <ATM ID>: Your transaction failed – account id <id> does not exist
-            logy.unlock_log_file();
-        unlock_writers();
         }
+        logy.lock_log_file();
+        logy.out << "Error " << ATM << ": Your transaction failed – account id " << accountId << " does not exist" << endl;
+        logy.unlock_log_file();
+        unlock_writers();
     }
     
     void cashDeposit(int ATM, int accountId, int password, int amount){
@@ -100,12 +98,11 @@ class Bank{
         Account* tmp= findAccount(accountId);
         if (tmp==NULL){
             logy.lock_log_file();
-            //
-            // Error <ATM ID>: Your transaction failed – account id <id> does not exist
+            logy.out << "Error " << ATM << ": Your transaction failed – account id " << accountId << " does not exist" << endl;
             logy.unlock_log_file();
         }
         else{
-            tmp->cashDeposit(ATM, password, amount, false);
+            tmp->cashDeposit(ATM, password, amount);
         }
         unlock_readers();
     }
@@ -115,49 +112,128 @@ class Bank{
         Account* tmp= findAccount(accountId);
         if (tmp==NULL){
             logy.lock_log_file();
-            //
-            // Error <ATM ID>: Your transaction failed – account id <id> does not exist
+            logy.out << "Error " << ATM << ": Your transaction failed – account id " << accountId << " does not exist" << endl;
             logy.unlock_log_file();
         }
         else{
-            tmp->cashWithdrawl(ATM, password, amount, false);
+            tmp->cashWithdrawl(ATM, password, amount);
         }
         unlock_readers();
     }
     
-    void moneyTransfer(int ATM, int sourceAcountId, int password, int targetAccountId, int amount){
+    
+    void moneyTransfer(int ATM, int sourceAccountId, int password, int targetAccountId, int amount){
         lock_readers();
-        Account* sourceAccount = findAccount(sourceAcountId);
-        if (sourceAccount == NULL){
+        int minId;
+        int maxId;
+        bool sourceIsMin=false;
+        bool targetExist=true;
+        Account* maxAccount;
+        Account* sourceAccount;
+        Account* targetAccount;
+        
+        if (sourceAccountId < targetAccountId){
+            minId = sourceAccountId;
+            maxId = targetAccountId;
+            sourceIsMin = true;
+        }
+        else {
+             minId = targetAccountId;
+             maxId = sourceAccountId;
+         }
+        Account* minAccount = findAccount(minId);
+        if (minAccount == NULL){
+            maxAccount = findAccount(maxId);
+            if (maxAccount == NULL){
+                logy.lock_log_file();
+                logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
+                logy.unlock_log_file();
+                unlock_readers();
+                return;
+            }
+            maxAccount->lock_writers();
+            if (sourceIsMin){
+                logy.lock_log_file();
+                logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
+                logy.unlock_log_file();
+                maxAccount->unlock_writers();
+                unlock_readers();
+                return;
+            }
+            targetExist=false;
+        }
+        else{
+            minAccount->lock_writers();
+            maxAccount = findAccount(maxId);
+            if (maxAccount == NULL){
+                if (sourceIsMin == false){
+                    logy.lock_log_file();
+                    logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
+                    logy.unlock_log_file();
+                    minAccount->unlock_writers();
+                    unlock_readers();
+                    return;
+                }
+                targetExist=false;
+            }
+            else{
+                maxAccount->lock_writers();
+            }
+        }
+        if (sourceIsMin){
+            sourceAccount = minAccount;
+            targetAccount = maxAccount;
+        }
+        else{
+            sourceAccount = maxAccount;
+            targetAccount = minAccount;
+        }
+        
+        if (sourceAccount->getPassword() != password){
             logy.lock_log_file();
-            //
-            //  no source
+            logy.out << "Error " << ATM << ": Your transaction failed – password for account id " << sourceAccountId << " is incorrect" << endl;
             logy.unlock_log_file();
+            if (targetExist){
+                targetAccount->unlock_writers();
+            }
+            sourceAccount->unlock_writers();
             unlock_readers();
             return;
         }
-        Account* targetAccount = findAccount(targetAccountId);
-        if (targetAccount == NULL){
+        
+        if (sourceAccount->getBalance() < amount){
             logy.lock_log_file();
-            //
-            //  no target
+            logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " balance is lower than " << amount << endl;
             logy.unlock_log_file();
+            if (targetExist){
+                targetAccount->unlock_writers();
+            }
+            sourceAccount->unlock_writers();
             unlock_readers();
             return;
         }
-        if (sourceAccount->cashWithdrawl(ATM, password, amount, false) == true){
-            targetAccount->cashDeposit(ATM, password, amount, false);
+        
+        if (targetExist == false){
+            logy.lock_log_file();
+            logy.out << "Error " << ATM << ": Your transaction failed – account id " << targetAccountId << " does not exist" << endl;
+            logy.unlock_log_file();
+            sourceAccount->unlock_writers();
+            unlock_readers();
+            return;
         }
-            
-        // Attention: prints should be different as successful withdrawl/deposit print
         
-        
-        
-        
+        sourceAccount->setBalance(-amount);
+        targetAccount->setBalance(amount);
+        logy.lock_log_file();
+        logy.out << ATM << ": Transfer " << amount << " from account " << sourceAccountId << " to account " << targetAccountId << " new account balance is " << sourceAccount->getBalance() << " new target account balance is " << targetAccount->getBalance() << endl;
+        logy.unlock_log_file();
+        minAccount->unlock_writers();
+        maxAccount->unlock_writers();
+        unlock_readers();
+        return;
     }
     
-    
-    
+
     void lock_readers() {
         pthread_mutex_lock(&mutex_readers);
          numReaders_++;
@@ -190,3 +266,112 @@ class Bank{
     }
     
 };
+
+
+
+
+
+
+/*
+ void moneyTransfer(int ATM, int sourceAccountId, int password, int targetAccountId, int amount){
+     lock_readers();
+     int minId;
+     int maxId;
+     bool sourceIsMin=false;
+     if (sourceAccountId < targetAccountId){
+         minId = sourceAccountId;
+         maxId = targetAccountId;
+         sourceIsMin = true;
+         
+     }
+     else {
+         minId = targetAccountId;
+         maxId = sourceAccountId;
+     }
+     Account* minAccount = findAccount(minId);
+     if (minAccount == NULL) {
+         if (minId==sourceAccountId){
+             logy.lock_log_file();
+             logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
+             logy.unlock_log_file();
+             unlock_readers();
+             return;
+         }
+         //minId doesn't exist & minId = tagret
+         Account* maxAccount = findAccount(maxId);
+         if (maxAccount == NULL){
+             logy.lock_log_file();
+             logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
+             logy.unlock_log_file();
+             unlock_readers();
+             return;
+         }
+         maxAccount->lock_writers();
+         if (maxAccount->getPassword() != password){
+             logy.lock_log_file();
+             logy.out << "Error " << endl; //password
+             logy.unlock_log_file();
+             maxAccount->unlock_writers();
+             unlock_readers();
+             return;
+         }
+         if (maxAccount->getBalance() < amount){
+             logy.lock_log_file();
+             logy.out << "Error " << endl; // no money balance
+             logy.unlock_log_file();
+             maxAccount->unlock_writers();
+             unlock_readers();
+             return;
+         }
+         logy.lock_log_file();
+         logy.out << "Error " << ATM  << endl; // no target account
+         logy.unlock_log_file();
+         maxAccount->unlock_writers();
+         unlock_readers();
+         return;
+     }
+     
+     minAccount->lock_writers(); // minAccount isn't NULL
+     Account* maxAccount = findAccount(maxId);
+     if (maxAccount == NULL){
+         if (maxId == sourceAccountId){
+             logy.lock_log_file();
+             logy.out << "Error " << ATM << ": Your transaction failed – account id " << sourceAccountId << " does not exist" << endl;
+             logy.unlock_log_file();
+             minAccount->unlock_writers();
+             unlock_readers();
+             return;
+         }
+         // source < tagret
+         if (minAccount->getPassword() != password){
+             logy.lock_log_file();
+             logy.out << "Error " << endl; //password
+             logy.unlock_log_file();
+             minAccount->unlock_writers();
+             unlock_readers();
+             return;
+         }
+         
+         if (minAccount->getBalance() < amount){
+             logy.lock_log_file();
+             logy.out << "Error " << endl; // no money balance
+             logy.unlock_log_file();
+             minAccount->unlock_writers();
+             unlock_readers();
+             return;
+         }
+         logy.lock_log_file();
+         logy.out << "Error " << ATM  << endl; // no target account
+         logy.unlock_log_file();
+         minAccount->unlock_writers();
+         unlock_readers();
+         return;
+     }
+     
+     if (sourceIsMin){
+         
+         minAccount->setBalance(-amount);
+     }
+     
+ }
+ */

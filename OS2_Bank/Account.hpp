@@ -34,20 +34,22 @@ class Account{
     
     ~Account();
     
-    void cashDeposit(int ATM, int password, int amount, bool transfer);
+    //void moneyTransfer(int ATM, int password, int amount, bool transfer);
     
-    bool cashWithdrawl(int ATM, int password, int amount, bool transfer);
+    void cashDeposit(int ATM, int password, int amount);
+    
+    void cashWithdrawl(int ATM, int password, int amount);
     
     void checkBalance(int ATM, int password);
     
-    int takeCommision(double rate);
-    
+    int takeCommision(double rate, int percentage);
     
     void printAccount();
         
     int getID();
     int getPassword();
     int getBalance();
+    void setBalance(int transferAmount);
     
     void lock_readers();
     
