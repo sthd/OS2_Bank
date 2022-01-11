@@ -19,7 +19,7 @@ Account::Account(int ATM, int id, int password, int balance) : id_(id), password
     
     logy.lock_log_file();
     //write into logfile
-    logy.out << ATM << " : New account id is " << id_ << " with password " << password_ << " and initial balance " << balance_ << endl;
+    logy.out << ATM << ": New account id is " << id_ << " with password " << password_ << " and initial balance " << balance_ << endl;
     logy.unlock_log_file();
 }
    

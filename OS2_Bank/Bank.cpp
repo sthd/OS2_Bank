@@ -25,9 +25,9 @@ class Bank{
     int numReaders_;
     pthread_mutex_t mutex_readers;
     pthread_mutex_t mutex_writers;
-    pthread_t print;
-    pthread_t commision;
-    pthread_t* ATM_list;
+    //pthread_t print;
+    //pthread_t commision;
+    //pthread_t* ATM_list;
 
     
     
@@ -38,11 +38,11 @@ class Bank{
     Bank(int numATM) : numATM_(numATM), balance_(0), numReaders_(0){
         pthread_mutex_init(&mutex_readers, nullptr);
         pthread_mutex_init(&mutex_writers, nullptr);
-        ATM_list = new pthread_t[numATM_];
+        // ATM_list = new pthread_t[numATM_];
         }
 
     ~Bank(){
-        delete [] ATM_list;
+        //delete [] ATM_list;
         pthread_mutex_destroy(&mutex_readers);
         pthread_mutex_destroy(&mutex_writers);
 
@@ -150,7 +150,22 @@ class Bank{
         unlock_readers();
     }
     
-    void status(){
+    void* coms(void* arg){
+        lock_readers();
+        int rates[3]={2, 3, 4};
+        int percentage = rates[int(rand() % 3)] ;
+        double rate = percentage / 100;
+        cout << rate << endl;
+        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+           balance_+= it->takeCommision(rate, percentage);
+        }
+        unlock_readers();
+        pthread_exit(NULL);
+    }
+    
+    
+    void accountsStatus(){
+        
         lock_readers();
         sort(accountVector.begin(),accountVector.end(), [](const Account& lhs, const Account& rhs) {
             return lhs.getID() < rhs.getID();
@@ -163,6 +178,7 @@ class Bank{
         }
         cout << "The Bank has " << balance_ << endl;
         unlock_readers();
+        pthread_exit(NULL);
     }
     
     
