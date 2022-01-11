@@ -15,16 +15,17 @@
 #include <string>
 #include <fstream>
 #include <pthread.h>
-
+#include <vector>
+#include <chrono>
+#include <thread>
 
 #define MAX_ARG 20
 #define MAX_LINE_SIZE 80
 #define MAXARGS 20
 #define MAXHISTORY 50
 
-//char *args[MAX_ARG];
 char cmdString[MAX_LINE_SIZE];
-char lineSize[MAX_LINE_SIZE];
+//char lineSize[MAX_LINE_SIZE];
 
 //std::string filename = "atm1.txt" ;
 char liney[MAX_LINE_SIZE];
@@ -33,11 +34,9 @@ const char* delimiters = " \t"; // make sure if 't' or ' '
 
 class LogFile logy;
 Bank Lloyds(15);
-int i = 0, num_arg = 1;
+//int i = 0, num_arg = 1;
 bool atmThreadsWorking=true;
-#include <vector>
-#include <chrono>
-#include <thread>
+
 std::vector<std::string> readFileToVector(const std::string& filename){
     std::ifstream source;
     source.open(filename);
@@ -55,6 +54,7 @@ string lineRead;
 void readMe(int ATM, const char* filename){
     std::ifstream instructionFile;
     instructionFile.open(filename);
+    int num_arg;
     while (std::getline(instructionFile, lineRead)){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         strcpy(cmdString, lineRead.c_str() );
@@ -68,15 +68,10 @@ void readMe(int ATM, const char* filename){
             return;
         args[0] = cmd;
         
-        for (i=1; i<MAX_ARG; i++){
+        for (int i=1; i<MAX_ARG; i++){
             args[i] = strtok(NULL, delimiters);
             if (args[i] != NULL)
                 num_arg++;
-        }
-       
-        cout << cmd << " with parameters are: ";
-        for (int j=1; j<num_arg+1; j++){
-            cout << args[j] << " ";
         }
         
         if (*cmd == 'O' && num_arg ==  3) {
@@ -98,12 +93,9 @@ void readMe(int ATM, const char* filename){
             Lloyds.moneyTransfer(ATM, stoi(args[1]),stoi(args[2]), stoi(args[3]), stoi(args[4]));
         }
         
-        
-        lineSize[0] = '\0';
         cmdString[0] ='\0';
-        cout << endl;
     }
-    
+
     instructionFile.close();
 }
 
@@ -123,8 +115,8 @@ void checkInputArguments(int argc, const char * argv[]){
     if ((numATM != (argc - 2) ) || numATM <= 0)
         illegalArguments=true;
     
-    for (int k=2; k<argc; k++){
-        testInputFile.open(argv[k]);
+    for (int i=2; i<argc; i++){
+        testInputFile.open(argv[i]);
         if (testInputFile.fail() == true){
             illegalArguments=true;
             break;
@@ -142,7 +134,6 @@ struct atmThreadData {
    const char* instructionFile;
 };
 
-
 void* ATMRoutine(void* arg){
     atmThreadData atd = *(atmThreadData*)(arg);
     int ATM_Id= atd.ATM_id;
@@ -154,10 +145,11 @@ void* ATMRoutine(void* arg){
 void* commissionRoutine(void* arg){
     while(atmThreadsWorking){
         sleep(3);
-        Lloyds.takeComission();
+        Lloyds.takeCommission();
     }
     pthread_exit(NULL);
 }
+
 
 void* accountsStatusRoutine(void* arg){
     while(atmThreadsWorking){
@@ -172,6 +164,7 @@ void* accountsStatusRoutine(void* arg){
 // WHAT if an acount starts with 0? e.g. 00123?  00123/123 ?
 int main(int argc, const char * argv[]) {
     
+    
     // Check programme's input arguments
     checkInputArguments(argc, argv);
     Bank halifax(15);
@@ -179,26 +172,26 @@ int main(int argc, const char * argv[]) {
     struct atmThreadData* atd = new atmThreadData[argc-2];
     //pthread_create (thread, attr, start_routine, arg)
     
-    if(pthread_create(&threads[0], NULL, commissionRoutine, NULL) != 0){
+    if(pthread_create(&threads[0], NULL, commissionRoutine, NULL)){
         perror("Fail to create commission thread!");
         exit(1);
     }
-    if(pthread_create(&threads[1], NULL, accountsStatusRoutine , NULL) !=0 ){
+    if(pthread_create(&threads[1], NULL, accountsStatusRoutine , NULL)){
         perror("Fail to create status thread!");
         exit(1);
     }
     
-    for (i = 0; i < argc-2; i++){
+    for (int i=0; i < argc-2; i++){
         atd[i].ATM_id = i+1;
         atd[i].instructionFile=argv[i+2];
-        if(pthread_create(&threads[i], NULL, ATMRoutine, (void *)&atd[i] ) ){
+        if(pthread_create(&threads[i+2], NULL, ATMRoutine, (void *)&atd[i] ) ){
             perror("Fail to create thread!");
             exit(1);
         }
     }
     void* status;
     
-    for( i = 2; i < argc; i++ ) {
+    for(int i=2; i < argc; i++) {
         if( pthread_join(threads[i], &status) ){
             perror("Fail to join ATM threads!");
             exit(1);

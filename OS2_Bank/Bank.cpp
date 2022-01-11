@@ -18,23 +18,17 @@ extern class LogFile logy;
 
 using std::vector;
 
-
 class Bank{
     int numATM_;
     int balance_;
     int numReaders_;
     pthread_mutex_t mutex_readers;
     pthread_mutex_t mutex_writers;
-    //pthread_t print;
-    //pthread_t commision;
-    //pthread_t* ATM_list;
-
-    
     
     public:
         
     vector<Account> accountVector;
-    // explicit
+    
     Bank(int numATM) : numATM_(numATM), balance_(0), numReaders_(0){
         pthread_mutex_init(&mutex_readers, nullptr);
         pthread_mutex_init(&mutex_writers, nullptr);
@@ -51,17 +45,19 @@ class Bank{
     void openAccount(int ATM, int accountId, int password, int amount){
         lock_writers();
         sleep(1);
+        cout << "accid:" << accountId << endl;
         if (findAccount(accountId) == NULL){
             // logy.lock_log_file();
             //
             // <ATM ID>: Account <id> new balance is <bal> after <amount> $ was deposited
             Account tmp = Account(ATM, accountId, password, amount);
+            cout << "I'm here: ATM: " << ATM << " accountId " << tmp.getID() << " password " << tmp.getPassword() << " amount " << tmp.getBalance() << endl;
             accountVector.push_back(tmp);
             //logy.unlock_log_file();
         }
         else{
             logy.lock_log_file();
-            logy.out << "Error " << ATM << ": Your transaction failed – account with the same id exists" << endl;
+            logy.out << "Error " << ATM << ": Your transaction failed – account with the same id exists" << accountId << endl;
             logy.unlock_log_file();
         }
         unlock_writers();
@@ -138,49 +134,38 @@ class Bank{
         unlock_readers();
     }
     
-    void takeComission(){
+    void takeCommission(){
         lock_readers();
-        int rates[3]={2, 3, 4};
-        int percentage = rates[int(rand() % 3)] ;
-        double rate = percentage / 100;
-        cout << rate << endl;
+        
+        double rates[3]={0.02, 0.03, 0.04};
+        double rate= rates[int(rand() % 3)];
+        int percentage = rate*100;
         for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
-           balance_+= it->takeCommision(rate, percentage);
+            balance_+= it->giveCommission(rate, percentage);
         }
         unlock_readers();
     }
-    
-    void* coms(void* arg){
-        lock_readers();
-        int rates[3]={2, 3, 4};
-        int percentage = rates[int(rand() % 3)] ;
-        double rate = percentage / 100;
-        cout << rate << endl;
-        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
-           balance_+= it->takeCommision(rate, percentage);
-        }
-        unlock_readers();
-        pthread_exit(NULL);
-    }
-    
+
     
     void accountsStatus(){
-        
+        /*
         lock_readers();
         sort(accountVector.begin(),accountVector.end(), [](const Account& lhs, const Account& rhs) {
             return lhs.getID() < rhs.getID();
         });
-        printf("\033[2J");
-        printf("\033[1;1H");
-        cout << "Current Bank Status" << endl;
-        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
-            cout << "Account " << it->getID() << ": Balance - " << it->getBalance() << " $ , Account Password - " << it->getPassword() << endl;
-        }
-        cout << "The Bank has " << balance_ << endl;
+         */
+        /*
+            printf("\033[2J");
+            printf("\033[1;1H");
+            cout << "Current Bank Status" << endl;
+            for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+                cout << "Account " << it->getID() << ": Balance - " << it->getBalance() << " $ , Account Password - " << it->getPassword() << endl;
+            }
+            cout << "The Bank has " << balance_ << endl;
+            */
+
         unlock_readers();
-        pthread_exit(NULL);
     }
-    
     
     void moneyTransfer(int ATM, int sourceAccountId, int password, int targetAccountId, int amount){
         lock_readers();
@@ -315,7 +300,6 @@ class Bank{
     void unlock_writers() {pthread_mutex_unlock(&mutex_writers);}
 
     Account* findAccount(int accountId){
-        //modifyJobList();
         for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
             if (it->getID() == accountId){
                 return &(*it);

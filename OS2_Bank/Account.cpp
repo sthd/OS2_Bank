@@ -18,7 +18,6 @@ Account::Account(int ATM, int id, int password, int balance) : id_(id), password
     pthread_mutex_init(&mutex_writers, nullptr);
     
     logy.lock_log_file();
-    //write into logfile
     logy.out << ATM << ": New account id is " << id_ << " with password " << password_ << " and initial balance " << balance_ << endl;
     logy.unlock_log_file();
 }
@@ -89,7 +88,7 @@ void Account::checkBalance(int ATM, int password){
    unlock_readers();
 }
 
-int Account::takeCommision(double rate, int percentage){
+int Account::giveCommission(double rate, int percentage){
     lock_writers();
     sleep(1);
     int amount = round(balance_ * rate);
