@@ -21,59 +21,108 @@
 
 #define MAX_ARG 20
 #define MAX_LINE_SIZE 80
-#define MAXARGS 20
-#define MAXHISTORY 50
 
-char cmdString[MAX_LINE_SIZE];
-//char lineSize[MAX_LINE_SIZE];
-
-//std::string filename = "atm1.txt" ;
-char liney[MAX_LINE_SIZE];
-
-const char* delimiters = " \t"; // make sure if 't' or ' '
-
+const char* delimiters = " \t\n"; // make sure if 't' or ' '
+bool atmThreadsWorking=true;
 class LogFile logy;
 Bank Lloyds(15);
-//int i = 0, num_arg = 1;
-bool atmThreadsWorking=true;
 
-std::vector<std::string> readFileToVector(const std::string& filename){
-    std::ifstream source;
-    source.open(filename);
-    std::vector<std::string> lines;
-    std::string line;
-    while (std::getline(source, line))
-    {
-        lines.push_back(line);
-    }
-    return lines;
-}
-
-string lineRead;
 
 void readMe(int ATM, const char* filename){
     std::ifstream instructionFile;
     instructionFile.open(filename);
-    int num_arg;
+    int num_arg=0;
+    string lineRead;
+    
+    
+    //
     while (std::getline(instructionFile, lineRead)){
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        char* cmd=NULL;
+        char* tmp=NULL;
+        //char* args[MAX_ARG];
+        int intArg[MAX_ARG];
+        num_arg=0;
+        
+        
+        char* cmdString =new char[lineRead.length() +1];
+        if (cmdString == NULL){
+            instructionFile.close();
+            return;
+        }
+        strcpy(cmdString, lineRead.c_str() );
+        cmd = strtok(cmdString, delimiters);
+        
+        if (cmd == NULL){
+            delete [] cmdString;
+            instructionFile.close();
+            return;
+        }
+        
+        for (int i=0; i<MAX_ARG; i++){
+            tmp = strtok(NULL, delimiters);
+            if (tmp != NULL){
+                num_arg++;
+                intArg[i]=stoi(tmp);
+            }
+        }
+        
+        if (*cmd == 'O' && num_arg ==  3) {
+            Lloyds.openAccount(ATM, intArg[0], intArg[1], intArg[2]);
+        }
+        else if(*cmd == 'D' && num_arg ==  3){
+            Lloyds.cashDeposit(ATM, intArg[0], intArg[1], intArg[2]);
+        }
+        else if(*cmd == 'W' && num_arg ==  3){
+            Lloyds.cashWithdrawl(ATM, intArg[0], intArg[1], intArg[2]);
+        }
+        else if(*cmd == 'B' && num_arg ==  2){
+            Lloyds.cashBalance(ATM, intArg[0], intArg[1]);
+        }
+        else if(*cmd == 'Q' && num_arg ==  2){
+            Lloyds.closeAccount(ATM, intArg[0], intArg[1]);
+        }
+        else if(*cmd == 'T' && num_arg ==  4){
+            Lloyds.moneyTransfer(ATM, intArg[0], intArg[1], intArg[2], intArg[3]);
+        }
+        delete [] cmdString;
+    }
+    instructionFile.close();
+}
+
+
+
+void readMeOLD(int ATM, const char* filename){
+    std::ifstream instructionFile;
+    instructionFile.open(filename);
+    int num_arg;
+    string lineRead;
+    int li=0;
+    char cmdString[MAX_LINE_SIZE];
+    string pr;
+    string pre;
+    //instructionFile.eof();
+    while (std::getline(instructionFile, lineRead)){
+        li++;
+        //cout << "I am atm: " << ATM << " and reading line: " << li << endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         strcpy(cmdString, lineRead.c_str() );
         cmdString[strlen(lineRead.c_str())]='\0';
         char* cmd;
         char* args[MAX_ARG];
-        //int* parameters[MAX_ARG];
         num_arg = 0;
         cmd = strtok(cmdString, delimiters);
-        if (cmd == NULL)
+        if (cmd == NULL){
+            instructionFile.close();
             return;
+        }
         args[0] = cmd;
-        
         for (int i=1; i<MAX_ARG; i++){
             args[i] = strtok(NULL, delimiters);
             if (args[i] != NULL)
                 num_arg++;
         }
-        
+
         if (*cmd == 'O' && num_arg ==  3) {
             Lloyds.openAccount(ATM, stoi(args[1]),stoi(args[2]), stoi(args[3]));
         }
@@ -92,21 +141,11 @@ void readMe(int ATM, const char* filename){
         else if(*cmd == 'T' && num_arg ==  4){
             Lloyds.moneyTransfer(ATM, stoi(args[1]),stoi(args[2]), stoi(args[3]), stoi(args[4]));
         }
-        
         cmdString[0] ='\0';
     }
-
     instructionFile.close();
 }
 
-void testOpenAccounts(){
-    Lloyds.openAccount(12, 1234, 1111, 23);
-    Lloyds.openAccount(12, 900, 1111, 23);
-    Lloyds.openAccount(12, 2004, 1111, 23);
-    Lloyds.openAccount(12, 1870, 1111, 23);
-    Lloyds.openAccount(12, 123, 1111, 23);
-    Lloyds.openAccount(12, 50004, 1111, 23);
-}
 
 void checkInputArguments(int argc, const char * argv[]){
     bool illegalArguments=false;
@@ -150,7 +189,6 @@ void* commissionRoutine(void* arg){
     pthread_exit(NULL);
 }
 
-
 void* accountsStatusRoutine(void* arg){
     while(atmThreadsWorking){
         sleep(0.5);
@@ -159,15 +197,12 @@ void* accountsStatusRoutine(void* arg){
     pthread_exit(NULL);
 }
 
-// declare threads
 
-// WHAT if an acount starts with 0? e.g. 00123?  00123/123 ?
 int main(int argc, const char * argv[]) {
-    
     
     // Check programme's input arguments
     checkInputArguments(argc, argv);
-    Bank halifax(15);
+    
     pthread_t* threads = new pthread_t[argc];
     struct atmThreadData* atd = new atmThreadData[argc-2];
     //pthread_create (thread, attr, start_routine, arg)
@@ -207,7 +242,10 @@ int main(int argc, const char * argv[]) {
         perror("Fail to join accounts' status threads!");
         exit(1);
     }
+    Lloyds.freeAccounts();
     delete [] threads;
+    delete [] atd;
+   
     /*
      Checklist:
      close files
@@ -215,121 +253,5 @@ int main(int argc, const char * argv[]) {
      destroy objects
      */
     
-    
     return 0;
 }
-
-
-/*
-cout << "ATM1 reading instrucions: " << endl;
-readMe(1, argv[2]);
-cout << endl;
-cout << "ATM2 reading instrucions: " << endl;
-readMe(2, argv[3]);
-cout << endl;
-cout << "ATM3 reading instrucions: " << endl;
-readMe(3, argv[4]);
-cout << "Finished reading" << endl;
-*/
-
-
-/*
- while(1 && num_arg!= 0){
-       fgets(lineSize, MAX_LINE_SIZE, stdin); //lineSize is our variable
-       strcpy(cmdString, lineSize);
-       cmdString[strlen(lineSize)-1]='\0';
-       char* cmd;
-       char* args[MAX_ARG];
-       num_arg = 0;
-       cmd = strtok(cmdString, delimiters);
-       if (cmd == NULL)
-           return 0;
-       args[0] = cmd;
-       for (i=1; i<MAX_ARG; i++){
-           args[i] = strtok(NULL, delimiters);
-           if (args[i] != NULL)
-               num_arg++;
-       }
-       cout << "command is: " << cmd << " num args: " << num_arg << " now the parameters are:  ";
-       for (int j=1; j<num_arg+1; j++){
-           cout << args[j] << " ";
-       }
-       lineSize[0] = '\0';
-       cmdString[0] ='\0';
-       cout << endl;
-   }
- */
-
-
-
-/*
- Lloyds.openAccount(12, 1234, 1111, 23);
- Lloyds.openAccount(12, 1234, 1111, 0);
- 
- //Lloyds.closeAccount(13, 1234, 1110);
- //Lloyds.closeAccount(14, 1234, 1111);
- Lloyds.moneyTransfer(12, 1321, 2222, 3214, 30);  // no source
- Lloyds.moneyTransfer(12, 1234, 2222, 3214, 30); // no password
- Lloyds.moneyTransfer(12, 1234, 1111, 3214, 30); // no money
- Lloyds.moneyTransfer(12, 1234, 1111, 3214, 10); // no target
- Lloyds.openAccount(12, 3214, 1111, 25);
- 
- Lloyds.moneyTransfer(12, 1234, 1111, 3214, 10); // should work
- 
- cout << "Pause " << endl;
-
- printf("\033[2J");
- printf("\033[1;1H");
- for (std::vector<Account>::iterator it=Lloyds.accountVector.begin(); it !=Lloyds.accountVector.end(); ++it){
-     cout << it->getID() << endl;
- }
- sleep(3);
- printf("\033[2J");
- printf("\033[1;1H");
- cout << " mahakti" << endl;
- for (std::vector<Account>::iterator it=Lloyds.accountVector.begin(); it !=Lloyds.accountVector.end(); ++it){
-     cout << it->getID() << endl;
- }
- 
- //char nextPwd[MAX_LINE_SIZE] ="";
- //char oldPwd[MAX_LINE_SIZE] ="";
- //char tmpPwd[MAX_LINE_SIZE] ="";
- //char dash[] = "-";
- */
-
-
-    
-    //ifstream
-    //getline(input, )
-        
-    
-    
-    /*
-     int ExeCmd(char* lineSize, char* cmdString){
-        char* cmd;
-        char* args[MAX_ARG];
-        //char pwd[MAX_LINE_SIZE];
-        //char* delimiters = " \t\n";
-        int i = 0, num_arg = 0;
-        bool illegal_cmd = false; // illegal command
-            cmd = strtok(lineSize, delimiters);
-        if (cmd == NULL)
-            return 0;
-        args[0] = cmd;
-        for (i=1; i<MAX_ARG; i++)
-        {
-            args[i] = strtok(NULL, delimiters);
-            if (args[i] != NULL)
-                num_arg++;
-     
-        }
-     */
-    
-    
-
-    
-    //join threads
-    
-    
-    //free memory + last prints
-    

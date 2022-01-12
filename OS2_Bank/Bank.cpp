@@ -27,7 +27,7 @@ class Bank{
     
     public:
         
-    vector<Account> accountVector;
+    vector<Account*> accountVector;
     
     Bank(int numATM) : numATM_(numATM), balance_(0), numReaders_(0){
         pthread_mutex_init(&mutex_readers, nullptr);
@@ -39,21 +39,19 @@ class Bank{
         //delete [] ATM_list;
         pthread_mutex_destroy(&mutex_readers);
         pthread_mutex_destroy(&mutex_writers);
-
     }
     
     void openAccount(int ATM, int accountId, int password, int amount){
         lock_writers();
         sleep(1);
-        cout << "accid:" << accountId << endl;
+        cout << "BANK: OPEN ACCOUNT: with account id:" << accountId << endl;
         if (findAccount(accountId) == NULL){
-            // logy.lock_log_file();
-            //
-            // <ATM ID>: Account <id> new balance is <bal> after <amount> $ was deposited
-            Account tmp = Account(ATM, accountId, password, amount);
-            cout << "I'm here: ATM: " << ATM << " accountId " << tmp.getID() << " password " << tmp.getPassword() << " amount " << tmp.getBalance() << endl;
+            Account* tmp = new Account(ATM, accountId, password, amount);
             accountVector.push_back(tmp);
-            //logy.unlock_log_file();
+            //delete tmp;
+            //cout << "I'm here: ATM: " << ATM << " accountId " << tmp->getID() << " password " << tmp->getPassword() << " amount " << tmp->getBalance() << endl;
+            //accountVector.emplace_back(ATM, accountId, password, amount);
+            
         }
         else{
             logy.lock_log_file();
@@ -67,11 +65,11 @@ class Bank{
     void closeAccount(int ATM, int accountId, int password){
         lock_writers();
         sleep(1);
-        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
-            if (it->getID() == accountId){
-                if (it->getPassword() == password){
+        for (std::vector<Account*>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+            if ((*it)->getID() == accountId){
+                if ((*it)->getPassword() == password){
                     logy.lock_log_file();
-                    logy.out << ATM << ": Account " << accountId << " is now closed. Balance was " << it->getBalance() << endl;
+                    logy.out << ATM << ": Account " << accountId << " is now closed. Balance was " << (*it)->getBalance() << endl;
                     accountVector.erase(it);
                     logy.unlock_log_file();
                     unlock_writers();
@@ -140,16 +138,17 @@ class Bank{
         double rates[3]={0.02, 0.03, 0.04};
         double rate= rates[int(rand() % 3)];
         int percentage = rate*100;
-        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
-            balance_+= it->giveCommission(rate, percentage);
+        for (std::vector<Account*>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+            balance_+= (*it)->giveCommission(rate, percentage);
         }
         unlock_readers();
     }
 
     
     void accountsStatus(){
-        /*
+        
         lock_readers();
+        /*
         sort(accountVector.begin(),accountVector.end(), [](const Account& lhs, const Account& rhs) {
             return lhs.getID() < rhs.getID();
         });
@@ -300,12 +299,23 @@ class Bank{
     void unlock_writers() {pthread_mutex_unlock(&mutex_writers);}
 
     Account* findAccount(int accountId){
-        for (std::vector<Account>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
-            if (it->getID() == accountId){
-                return &(*it);
+        for (std::vector<Account*>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+            if ( (*it)->getID() == accountId){
+                return *it;
             }
         }
         return NULL;
+    }
+    
+    void freeAccounts(){
+        cout << "Freeing accounts:"<< endl;
+        for (std::vector<Account*>::iterator it=accountVector.begin(); it !=accountVector.end(); ++it){
+            cout << "Element is: " << (*it)->getID() ;
+            if ((*it) != NULL)
+                delete (*it);
+            cout << " end free" << endl;
+            //accountVector.erase(it);
+        }
     }
     
 };
